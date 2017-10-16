@@ -27,6 +27,31 @@ namespace FTPSync
             return true;
         }
 
+        internal static bool CheckFtpReady()
+        {
+            string ftpPath = "ftp://" + ServerIp + DatDir + "/FTPReady.txt";
+            var request = (FtpWebRequest)WebRequest.Create(ftpPath);
+            request.Credentials = new NetworkCredential(UserName, PassWord);
+            request.Method = WebRequestMethods.Ftp.GetFileSize;
+
+            try
+            {
+                FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+                return true;
+            }
+            catch (WebException ex)
+            {
+                FtpWebResponse response = (FtpWebResponse)ex.Response;
+                if (response.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable)
+                    return false;
+            }
+            return false;
+        }
+
+        internal static void RenameFtpFile(string oldName, string newName)
+        {
+
+        }
         internal static void DoDownloads()
         {
             Tools.Report("Downloading " + datsDownload.Count + " files");
@@ -59,6 +84,14 @@ namespace FTPSync
 
         internal static void LoadFtpDats()
         {
+            for(int i=0; i<10; i++)
+            {
+                if (CheckFtpReady())
+                    break;
+
+                System.Threading.Thread.Sleep(3000);
+            }
+
             Tools.Report("Loading FTP file list ");
             string ftpPath = "ftp://" + ServerIp + DatDir+"/";
 
@@ -128,7 +161,7 @@ namespace FTPSync
 
             using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
             {
-                //eturn response.StatusDescription;
+                //return response.StatusDescription;
             }
         }
     }

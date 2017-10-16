@@ -20,6 +20,7 @@ namespace FTPSync
 
                 foreach (var dat in datsUpload)
                 {
+                    AddDatSize(dat);
                     string ftpPath = "ftp://" + FTP.ServerIp + FTP.DatDir + "/" + dat.FileModDate + "_" + dat.OrderNum + ".dat";
                     string locpath = DatDir + "\\" + dat.OrderNum + ".dat";
                     ftpClient.UploadFile(ftpPath, locpath);
@@ -33,8 +34,6 @@ namespace FTPSync
                     FTP.DeleteFtpDat(dat);
             }
         }
-
-
 
         internal static void LoadLocalDats()
         {
@@ -95,10 +94,10 @@ namespace FTPSync
             dat.Actsize = new System.IO.FileInfo(dat.locFileName).Length;
             if(dat.RecSize != dat.Actsize)
             {
-                dat.RecSize = dat.Actsize;
                 if (dat.RecSize != -1)
                 {
                     var lineList = Tools.ReadFileToList(dat.locFileName);
+                    lineList.RemoveAt(lineList.Count - 1);
                     lineList.RemoveAt(lineList.Count - 1);
 
                     File.WriteAllLines(dat.locFileName, lineList);
@@ -106,7 +105,8 @@ namespace FTPSync
 
                 using (StreamWriter w = File.AppendText(dat.locFileName))
                 {
-                    w.WriteLine("FileSize=" + dat.RecSize);
+                    w.WriteLine("[**** File Size ****]");
+                    w.WriteLine("FileSize=" + dat.Actsize);
                 }
             }
             

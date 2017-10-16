@@ -10,8 +10,14 @@ namespace FTPSync
     {
         static void Main(string[] args)
         {
-            DoWork();
-            Console.ReadLine();
+            try
+            {
+                DoWork();
+            }
+            catch
+            {
+                System.Windows.Forms.MessageBox.Show("Something bad has happened to FYP Sync");
+            }
         }
 
         private static void DoWork()
