@@ -11,33 +11,8 @@ namespace FTPSync
         public static List<Dat> DatList { get; set; }
         public static List<Dat> datsUpload { get; set; }
 
-        internal static void DoUploads()
-        {
-            Tools.Report("Uploading "+Loc.datsUpload.Count+" files");
-            using (WebClient ftpClient = new WebClient())
-            {
-                ftpClient.Credentials = new System.Net.NetworkCredential(FTP.UserName, FTP.PassWord);
-
-                foreach (var dat in datsUpload)
-                {
-                    AddDatSize(dat);
-                    string ftpPath = "ftp://" + FTP.ServerIp + FTP.DatDir + "/" + dat.FileModDate + "_" + dat.OrderNum + ".dat";
-                    string locpath = DatDir + "\\" + dat.OrderNum + ".dat";
-                    ftpClient.UploadFile(ftpPath, locpath);
-                }
-            }
-
-            Tools.Report("Deleting " + Loc.datsUpload.Count + " files");
-            foreach (var dat in datsUpload)
-            {
-                if (dat.FtpNameTime != null)
-                    FTP.DeleteFtpDat(dat);
-            }
-        }
-
         internal static void LoadLocalDats()
         {
-            Tools.Report("loading local dats");
             Loc.DatList = new List<Dat>();
             string[] array2 = Directory.GetFiles(DatDir);
             foreach (string file in array2)
@@ -54,19 +29,18 @@ namespace FTPSync
 
         internal static bool SortLocalDats()
         {
-            Tools.Report("Sorting " + DatList.Count + " local files");
-            if (FTP.DatsList.Count < 1 && Loc.DatList.Count < 1)
+            if (Ftp.DatsList.Count < 1 && Loc.DatList.Count < 1)
                 return false;
 
-            Loc.datsUpload = new List<Dat>();
-            FTP.datsDownload = new List<Dat>();
+            Ftp.datsUpload = new List<Dat>();
+            Ftp.datsDownload = new List<Dat>();
 
             if (Loc.DatList.Count > 0)
             {
                 foreach (var dat in Loc.DatList)
                 {
                     Dat matchingFtpDat = null;
-                    if (FTP.DatsList.TryGetValue(dat.OrderNum, out matchingFtpDat))
+                    if (Ftp.DatsList.TryGetValue(dat.OrderNum, out matchingFtpDat))
                     {
                         int timediff = string.Compare(matchingFtpDat.FtpNameTime, dat.FileModDate);
                         if (timediff < 0)
@@ -77,36 +51,37 @@ namespace FTPSync
                         else if (timediff > 0)
                         {
                             dat.FtpNameTime = matchingFtpDat.FtpNameTime;
-                            FTP.datsDownload.Add(dat);
+                            Ftp.datsDownload.Add(dat);
                         }
-                        FTP.DatsList.Remove(dat.OrderNum);
+                        Ftp.DatsList.Remove(dat.OrderNum);
                         continue;
                     }
-                    Loc.datsUpload.Add(dat); // if not found on ftp
+                    Ftp.datsUpload.Add(dat); // if not found on ftp
                 }
             }
             return true;
         }
 
-        private static Dat AddDatSize(Dat dat) // if file is to be uploaded
+        public static Dat AddDatSize(Dat dat) // if file is to be uploaded
         {
-            Tools.Report("Adding size to " + datsUpload.Count + " local files");
-            dat.Actsize = new System.IO.FileInfo(dat.locFileName).Length;
-            if(dat.RecSize != dat.Actsize)
+            long actsize = new System.IO.FileInfo(dat.locFileName).Length;
+            if(dat.RecSize != actsize)
             {
                 if (dat.RecSize != -1)
                 {
                     var lineList = Tools.ReadFileToList(dat.locFileName);
                     lineList.RemoveAt(lineList.Count - 1);
                     lineList.RemoveAt(lineList.Count - 1);
+                    actsize -= 38;
 
                     File.WriteAllLines(dat.locFileName, lineList);
                 }
 
                 using (StreamWriter w = File.AppendText(dat.locFileName))
                 {
+                    actsize += 38;
                     w.WriteLine("[**** File Size ****]");
-                    w.WriteLine("FileSize=" + dat.Actsize);
+                    w.WriteLine("FileSize=" + actsize);
                 }
             }
             
@@ -115,7 +90,6 @@ namespace FTPSync
 
         private static Dat ReadInfoFromFile(List<string> lineList, string file)
         {
-            //Tools.Report("Reading info from  " + DatList.Count + " local files");
             var dat = new Dat();
             bool fileSizeFound = false;
             foreach (var line in lineList)

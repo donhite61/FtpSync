@@ -10,27 +10,26 @@ namespace FTPSync
     {
         static void Main(string[] args)
         {
-            try
-            {
-                DoWork();
-            }
-            catch
-            {
-                System.Windows.Forms.MessageBox.Show("Something bad has happened to FYP Sync");
-            }
+            DoWork();
+            //try
+            //{
+            //    DoWork();
+            //}
+            //catch
+            //{
+            //    System.Windows.Forms.MessageBox.Show("Something bad has happened to FTP Sync");
+            //}
         }
 
         private static void DoWork()
         {
-            Tools.LoadGVfromINIfile();
-            FTP.LoadFtpDats();
+            
+            Ftp.FtpGetSortedDirList();
             Loc.LoadLocalDats();
             Loc.SortLocalDats();
-            FTP.AddNewFtpDats();
-            Loc.DoUploads();
-            FTP.DoDownloads();
-            Console.WriteLine("FTPSync finished");
-            Console.ReadLine();
+            Ftp.AddNewFtpDats();
+            Ftp.UploadDatsInList();
+            Ftp.DownloadDatsInList();
         }
     }
 }

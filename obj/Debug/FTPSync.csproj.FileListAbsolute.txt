@@ -10,3 +10,17 @@ D:\Dad\Documents\CSharp\2017\FTPSync\bin\Debug\FTPSync.pdb
 D:\Dad\Documents\CSharp\2017\FTPSync\obj\Debug\FTPSync.csprojResolveAssemblyReference.cache
 D:\Dad\Documents\CSharp\2017\FTPSync\obj\Debug\FTPSync.exe
 D:\Dad\Documents\CSharp\2017\FTPSync\obj\Debug\FTPSync.pdb
+D:\Dad\Documents\CSharp\2017\FTPSync\bin\Debug\FTPSync.exe.manifest
+D:\Dad\Documents\CSharp\2017\FTPSync\bin\Debug\FTPSync.application
+D:\Dad\Documents\CSharp\2017\FTPSync\obj\Debug\FTPSync.exe.manifest
+D:\Dad\Documents\CSharp\2017\FTPSync\obj\Debug\FTPSync.application
+C:\Csharp\FTPSync\bin\Debug\FTPSync.exe.config
+C:\Csharp\FTPSync\bin\Debug\FTPSync.exe.manifest
+C:\Csharp\FTPSync\bin\Debug\FTPSync.application
+C:\Csharp\FTPSync\bin\Debug\FTPSync.exe
+C:\Csharp\FTPSync\bin\Debug\FTPSync.pdb
+C:\Csharp\FTPSync\obj\Debug\FTPSync.csprojResolveAssemblyReference.cache
+C:\Csharp\FTPSync\obj\Debug\FTPSync.exe.manifest
+C:\Csharp\FTPSync\obj\Debug\FTPSync.application
+C:\Csharp\FTPSync\obj\Debug\FTPSync.exe
+C:\Csharp\FTPSync\obj\Debug\FTPSync.pdb
