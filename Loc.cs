@@ -9,7 +9,6 @@ namespace FTPSync
     {
         public static string DatDir { get; set; }
         public static List<Dat> DatList { get; set; }
-        public static List<Dat> datsUpload { get; set; }
 
         internal static void LoadLocalDats()
         {
@@ -46,7 +45,7 @@ namespace FTPSync
                         if (timediff < 0)
                         {
                             dat.FtpNameTime = matchingFtpDat.FtpNameTime;
-                            Loc.datsUpload.Add(dat);
+                            Ftp.datsUpload.Add(dat);
                         }
                         else if (timediff > 0)
                         {
