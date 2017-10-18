@@ -8,7 +8,7 @@ namespace FTPSync
     class Ftp
     {
         public static string DatDir { get; set; }
-        public static string ServerIp { get; set; }
+        public static string ServerPath { get; set; }
         public static string UserName { get; set; }
         public static string PassWord { get; set; }
         public static bool FtpReady { get; set; }
@@ -16,13 +16,9 @@ namespace FTPSync
         public static List<Dat> datsDownload { get; set; }
         public static List<Dat> datsUpload { get; set; }
 
-        internal static void FtpGetSortedDirList(string ftpPath = "")
+        internal static void FtpGetSortedDirList()
         {
-            if (!FtpReady) Tools.ReadIniFile();
-            if (ftpPath == "")
-                ftpPath = "ftp://"+ ServerIp +"/"+ DatDir +"/";
-
-            FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(ftpPath);
+            FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(ServerPath);
             ftpRequest.Method = WebRequestMethods.Ftp.ListDirectory;
             ftpRequest.Credentials = new NetworkCredential(UserName, PassWord);
             FtpWebResponse response = (FtpWebResponse)ftpRequest.GetResponse();
@@ -114,16 +110,31 @@ namespace FTPSync
                     FtpDeleteFile(dat.FtpNameTime + "_" + dat.OrderNum + ".dat");
             }
         }
-
-        public static bool FtpUploadFile(string locFilePath, string ftpFileName, string ftpPath="")
+        public static bool WaitForFtpReady()
         {
-            if (!FtpReady) Tools.ReadIniFile();
-            if (ftpPath == "")
-                ftpPath = "ftp://" + ServerIp + "/" + DatDir + "/";
+            int count = 0;
+            while (!Ftp.DownloadString("FtpReady.txt")) // if ftp is busy
+            {
+                for (var i = 0; i < 21; i++)
+                {
+                    if (!Ftp.DownloadString("FtpBusy.txt"))
+                        break;
 
+                    System.Threading.Thread.Sleep(3000);
+                }
+                Ftp.UploadString("FtpReady.txt");
+                if (count > 100)
+                    Environment.Exit(0);
+                count += 1;
+            }
+            return true;
+        }
+
+        public static bool FtpUploadFile(string locFilePath, string ftpFileName)
+        {
             var client = new WebClient();
             client.Credentials = new NetworkCredential(UserName, PassWord);
-            client.BaseAddress = ftpPath;
+            client.BaseAddress = ServerPath;
             
             try
             {
@@ -136,38 +147,83 @@ namespace FTPSync
             }
             return true;
         }
-        public static bool FtpDownloadFile(string locFilePath, string ftpFileName, string ftpPath = "")
+        public static bool FtpDownloadFile(string locFilePath, string ftpFileName)
         {
-            if (!FtpReady) Tools.ReadIniFile();
-            if (ftpPath == "")
-                ftpPath = "ftp://" + ServerIp + "/" + DatDir + "/";
-
-            string tmpFilePath = locFilePath.Substring(locFilePath.Length - 4) + ".tmp";
+            string tmpFilePath = "";
             if (File.Exists(locFilePath))
+            {
+                tmpFilePath = locFilePath.Substring(0, locFilePath.Length - 4) + ".tmp";
                 File.Move(locFilePath, tmpFilePath);
+            }
 
             var client = new WebClient();
             client.Credentials = new NetworkCredential(UserName, PassWord);
             try
             {
-                client.DownloadFile(ftpPath + ftpFileName, locFilePath); //since the baseaddress
-                File.Delete(tmpFilePath);
+                client.DownloadFile(ServerPath + ftpFileName, locFilePath);
+                if (tmpFilePath != "")
+                    File.Delete(tmpFilePath);
             }
             catch (WebException e)
             {
-                File.Move(tmpFilePath, locFilePath);
-                System.Windows.Forms.MessageBox.Show("FtpSync error downloading " + ftpFileName + "\n"+"\n" + e.ToString());
+                if(tmpFilePath != "")
+                    File.Move(tmpFilePath, locFilePath);
+                if(ftpFileName != "FtpReady.txt")
+                    System.Windows.Forms.MessageBox.Show("FtpSync error downloading " + ftpFileName + "\n"+"\n" + e.ToString());
                 return false;
             }
             return true;
         }
-        public static bool FtpDeleteFile(string ftpFileName, string ftpPath = "")
+        public static bool UploadString(string ftpFileName) //used to check for "FtpReady.txt"
         {
-            if (!FtpReady) Tools.ReadIniFile();
-            if (ftpPath == "")
-                ftpPath = "ftp://" + ServerIp + "/" + DatDir + "/";
+            WebClient client = new WebClient();
+            client.Credentials = new NetworkCredential(UserName, PassWord);
+            try
+            {
+                client.UploadString(ServerPath + ftpFileName, "");
+                return true;
+            }
+            catch (WebException )
+            {
+                return false;
+            }
+        }
+        public static bool DownloadString(string ftpFileName) //used to check for "FtpReady.txt"
+        {
+            WebClient client = new WebClient();
+            client.Credentials = new NetworkCredential(UserName, PassWord);
+            try
+            {
+                client.DownloadString(ServerPath + ftpFileName);
+                return true;
+            }
+            catch (WebException )
+            {
+                return false;
+            }
+        }
+        public static bool RenameFile(string oldFName, string newFName)
+        {
+            FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(ServerPath + "/"+ oldFName);
+            ftpRequest.Method = WebRequestMethods.Ftp.Rename;
+            ftpRequest.Proxy = null;
+            ftpRequest.Credentials = new NetworkCredential(UserName, PassWord);
 
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpPath + ftpFileName);
+            ftpRequest.Method = WebRequestMethods.Ftp.Rename;
+            ftpRequest.RenameTo = "/" + DatDir + "/" + newFName;
+            try
+            {
+                ftpRequest.GetResponse();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        public static bool FtpDeleteFile(string ftpFileName)
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ServerPath + ftpFileName);
             request.Method = WebRequestMethods.Ftp.DeleteFile;
             request.Credentials = new NetworkCredential(UserName, PassWord);
 

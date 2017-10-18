@@ -5,13 +5,8 @@ using System.Linq;
 
 namespace FTPSync
 {
-    static class Tools
+    public class Tools
     {
-        public static void Report(string msg)
-        {
-            Console.WriteLine(msg);
-        }
-
         public static List<string> ReadFileToList(string filePath)
         {
             var aReadFile = File.ReadAllLines(filePath);
@@ -21,11 +16,13 @@ namespace FTPSync
 
         internal static void ReadIniFile()
             {
+                string serverIp = "";
                 Loc.DatDir = "";
                 Ftp.DatDir = "";
-                Ftp.ServerIp = "";
+                Ftp.ServerPath = "";
                 Ftp.UserName = "";
-                Ftp.ServerIp = "";
+                
+                Ftp.PassWord = "";
                 string section = "";
 
                 string scriptpath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -53,7 +50,7 @@ namespace FTPSync
                     {
                         var split = line.Split('=');
                         if (split[0] == "FTPServerIp")
-                            Ftp.ServerIp = split[1];
+                            serverIp = split[1];
                         if (split[0] == "FTPUserName")
                             Ftp.UserName = split[1];
                         if (split[0] == "FTPPassWord")
@@ -62,11 +59,11 @@ namespace FTPSync
                             Ftp.DatDir = split[1];
                     }
                 }
-
+                Ftp.ServerPath = "ftp://" + serverIp + "/" + Ftp.DatDir + "/";
                 if (Ftp.DatDir != "" &&
-                    Ftp.ServerIp != "" &&
+                    Ftp.ServerPath != "" &&
                     Ftp.UserName != "" &&
-                    Ftp.ServerIp != "")
+                    Ftp.PassWord != "")
                            Ftp.FtpReady = true;
 
             }

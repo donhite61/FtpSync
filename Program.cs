@@ -11,25 +11,20 @@ namespace FTPSync
         static void Main(string[] args)
         {
             DoWork();
-            //try
-            //{
-            //    DoWork();
-            //}
-            //catch
-            //{
-            //    System.Windows.Forms.MessageBox.Show("Something bad has happened to FTP Sync");
-            //}
         }
 
         private static void DoWork()
         {
-            
+            Tools.ReadIniFile();
+            Ftp.WaitForFtpReady();
+            Ftp.RenameFile("FtpReady.txt", "FtpBusy.txt");
             Ftp.FtpGetSortedDirList();
             Loc.LoadLocalDats();
             Loc.SortLocalDats();
             Ftp.AddNewFtpDats();
             Ftp.UploadDatsInList();
             Ftp.DownloadDatsInList();
+            Ftp.RenameFile("FtpBusy.txt", "FtpReady.txt");
         }
     }
 }
