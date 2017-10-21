@@ -8,6 +8,8 @@ namespace FTPSync
     class Ftp
     {
         public static string DatDir { get; set; }
+        public static string AchDir { get; set; }
+        public static string ServerIp { get; set; }
         public static string ServerPath { get; set; }
         public static string UserName { get; set; }
         public static string PassWord { get; set; }
@@ -110,24 +112,39 @@ namespace FTPSync
                     FtpDeleteFile(dat.FtpNameTime + "_" + dat.OrderNum + ".dat");
             }
         }
-        public static bool WaitForFtpReady()
+        public static void WaitForFtpReady()
         {
-            int count = 0;
-            while (!Ftp.DownloadString("FtpReady.txt")) // if ftp is busy
+            var ftpRdy = false;
+            var ftpBsy = false;
+            for (var i = 1; i < 82; i++)
             {
-                for (var i = 0; i < 21; i++)
-                {
-                    if (!Ftp.DownloadString("FtpBusy.txt"))
-                        break;
+                ftpRdy = Ftp.DownloadString("FtpReady.txt");
+                ftpBsy = Ftp.DownloadString("FtpBusy.txt");
 
+                if (ftpRdy == true && ftpBsy == false)
+                {
+                    return;
+                }
+                else if (ftpRdy == true && ftpBsy == true)
+                {
+                    FtpDeleteFile("FtpBusy.txt");
+                }
+                else if (ftpRdy == false && ftpBsy == false)
+                {
+                    Ftp.UploadString("FtpReady.txt");
+                }
+                else
+                {
                     System.Threading.Thread.Sleep(3000);
                 }
-                Ftp.UploadString("FtpReady.txt");
-                if (count > 100)
-                    Environment.Exit(0);
-                count += 1;
+                if(i==80)
+                {
+                    Ftp.UploadString("FtpReady.txt");
+                    FtpDeleteFile("FtpBusy.txt");
+                }
             }
-            return true;
+            Tools.Report("FtpSync error making ready ", new Exception());
+            Environment.Exit(0);
         }
 
         public static bool FtpUploadFile(string locFilePath, string ftpFileName)
@@ -138,21 +155,32 @@ namespace FTPSync
             
             try
             {
-                client.UploadFile(ftpFileName, locFilePath); //since the baseaddress
+                client.UploadFile(ftpFileName, locFilePath);
             }
-            catch (WebException e)
+            catch (WebException)
             {
-                System.Windows.Forms.MessageBox.Show("FtpSync error uploading " + ftpFileName + "\n"+"\n"+ e.ToString());
-                return false;
+                System.Threading.Thread.Sleep(2000);
+                try
+                {
+                    client.UploadFile(ftpFileName, locFilePath);
+                }
+                catch (WebException e)
+                {
+                    Tools.Report("FtpSync error uploading " + ftpFileName, e);
+                    return false;
+                }
             }
             return true;
         }
         public static bool FtpDownloadFile(string locFilePath, string ftpFileName)
         {
             string tmpFilePath = "";
-            if (File.Exists(locFilePath))
+            if (File.Exists(locFilePath)) // make backup of local copy in case of download fail
             {
                 tmpFilePath = locFilePath.Substring(0, locFilePath.Length - 4) + ".tmp";
+                if (File.Exists(tmpFilePath))
+                    File.Delete(tmpFilePath);
+
                 File.Move(locFilePath, tmpFilePath);
             }
 
@@ -161,34 +189,84 @@ namespace FTPSync
             try
             {
                 client.DownloadFile(ServerPath + ftpFileName, locFilePath);
-                if (tmpFilePath != "")
+                if (File.Exists(tmpFilePath))
                     File.Delete(tmpFilePath);
             }
-            catch (WebException e)
+            catch (WebException)
             {
-                if(tmpFilePath != "")
-                    File.Move(tmpFilePath, locFilePath);
-                if(ftpFileName != "FtpReady.txt")
-                    System.Windows.Forms.MessageBox.Show("FtpSync error downloading " + ftpFileName + "\n"+"\n" + e.ToString());
-                return false;
+                System.Threading.Thread.Sleep(2000);
+                try
+                {
+                    client.DownloadFile(ServerPath + ftpFileName, locFilePath);
+                    if (File.Exists(tmpFilePath))
+                        File.Delete(tmpFilePath);
+                }
+                catch (WebException e)
+                {
+                    if (File.Exists(tmpFilePath))
+                        File.Move(tmpFilePath, locFilePath); // restore original file
+
+                    Tools.Report("FtpSync error downloading " + ftpFileName, e);
+                    return false;
+                }
             }
             return true;
         }
-        public static bool UploadString(string ftpFileName) //used to check for "FtpReady.txt"
+        public static bool RenameFile(string oldFName, string newFName)
         {
-            WebClient client = new WebClient();
-            client.Credentials = new NetworkCredential(UserName, PassWord);
+            FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(oldFName);
+            ftpRequest.Method = WebRequestMethods.Ftp.Rename;
+            ftpRequest.Proxy = null;
+            ftpRequest.Credentials = new NetworkCredential(UserName, PassWord);
+            ftpRequest.Method = WebRequestMethods.Ftp.Rename;
+            ftpRequest.RenameTo =  newFName;
             try
             {
-                client.UploadString(ServerPath + ftpFileName, "");
-                return true;
+                ftpRequest.GetResponse() ;
             }
-            catch (WebException )
+            catch (WebException)
             {
-                return false;
+                System.Threading.Thread.Sleep(2000);
+                try
+                {
+                    ftpRequest.GetResponse();
+                }
+                catch (WebException e)
+                {
+                    Tools.Report("FtpSync error renaming " + oldFName +" to "+ newFName, e);
+                    return false;
+                }
             }
+            return true;
         }
-        public static bool DownloadString(string ftpFileName) //used to check for "FtpReady.txt"
+        public static bool FtpDeleteFile(string ftpFileName)
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ServerPath + ftpFileName);
+            var time = request.Timeout;
+            request.Method = WebRequestMethods.Ftp.DeleteFile;
+            request.Credentials = new NetworkCredential(UserName, PassWord);
+
+            try
+            {
+                FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+            }
+            catch (WebException)
+            {
+                System.Threading.Thread.Sleep(2000);
+                try
+                {
+                    FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+                }
+                catch (WebException e)
+                {
+                    Tools.Report("FtpSync error deleting " + ftpFileName, e);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static bool DownloadString(string ftpFileName) //used to check for "FtpReady.txt" and "FtpBusy.txt"
         {
             WebClient client = new WebClient();
             client.Credentials = new NetworkCredential(UserName, PassWord);
@@ -197,46 +275,34 @@ namespace FTPSync
                 client.DownloadString(ServerPath + ftpFileName);
                 return true;
             }
-            catch (WebException )
+            catch (WebException)
             {
                 return false;
             }
         }
-        public static bool RenameFile(string oldFName, string newFName)
-        {
-            FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(ServerPath + "/"+ oldFName);
-            ftpRequest.Method = WebRequestMethods.Ftp.Rename;
-            ftpRequest.Proxy = null;
-            ftpRequest.Credentials = new NetworkCredential(UserName, PassWord);
 
-            ftpRequest.Method = WebRequestMethods.Ftp.Rename;
-            ftpRequest.RenameTo = "/" + DatDir + "/" + newFName;
+        public static bool UploadString(string ftpFileName) //used to set "FtpReady" and "FtpBusy.txt"
+        {
+            WebClient client = new WebClient();
+            client.Credentials = new NetworkCredential(UserName, PassWord);
             try
             {
-                ftpRequest.GetResponse();
-                return true;
+                client.UploadString(ServerPath + ftpFileName, "");
             }
-            catch
+            catch (WebException)
             {
-                return false;
+                System.Threading.Thread.Sleep(1000);
+                try
+                {
+                    client.UploadString(ServerPath + ftpFileName, "");
+                }
+                catch (WebException e)
+                {
+                    Tools.Report("FtpSync error uploading " + ftpFileName, e);
+                    return false;
+                }
             }
-        }
-        public static bool FtpDeleteFile(string ftpFileName)
-        {
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ServerPath + ftpFileName);
-            request.Method = WebRequestMethods.Ftp.DeleteFile;
-            request.Credentials = new NetworkCredential(UserName, PassWord);
-
-            try
-            {
-                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-                    return true;
-            }
-            catch (WebException e)
-            {
-                System.Windows.Forms.MessageBox.Show("FtpSync error deleting " + ftpFileName + "\n" + "\n" + e.ToString());
-                return false;
-            }
+            return true;
         }
     }
 }

@@ -8,6 +8,7 @@ namespace FTPSync
     public class Loc
     {
         public static string DatDir { get; set; }
+        public static string AchDir { get; set; }
         public static List<Dat> DatList { get; set; }
 
         internal static void LoadLocalDats()
@@ -52,13 +53,55 @@ namespace FTPSync
                             dat.FtpNameTime = matchingFtpDat.FtpNameTime;
                             Ftp.datsDownload.Add(dat);
                         }
-                        Ftp.DatsList.Remove(dat.OrderNum);
-                        continue;
+                        else
+                        {
+                            if (OrderOlderThan30Days(dat))
+                            {
+                                dat.FtpNameTime = matchingFtpDat.FtpNameTime;
+                                MoveLocDatToArchive(dat);
+                                MoveFtpDatToArchive(dat);
+                            }
+
+                            Ftp.DatsList.Remove(dat.OrderNum);
+                            continue;
+                        }
                     }
-                    Ftp.datsUpload.Add(dat); // if not found on ftp
+                    else // if not on ftp
+                    {
+                        if (OrderOlderThan30Days(dat))
+                            MoveLocDatToArchive(dat);
+                        else
+                            Ftp.datsUpload.Add(dat); // if not found on ftp
+                    }
                 }
             }
             return true;
+        }
+
+        private static void MoveFtpDatToArchive(Dat dat)
+        {
+            var curDatPath = Ftp.ServerPath + "/" + dat.FtpNameTime + "_" + dat.OrderNum + ".dat";
+            var achDatPath = "/" + Ftp.AchDir + "/" + dat.FtpNameTime + "_" + dat.OrderNum + ".dat";
+            Ftp.RenameFile(curDatPath, achDatPath);
+        }
+
+        private static void MoveLocDatToArchive(Dat dat)
+        {
+            var curDatPath = dat.locFileName;
+            var achDatPath = Loc.AchDir + "\\" + dat.OrderNum + ".dat";
+            File.Move(curDatPath, achDatPath);
+        }
+
+        private static bool OrderOlderThan30Days(Dat dat)
+        {
+            string fDate = dat.FileModDate.Substring(0, 4) + "-" + dat.FileModDate.Substring(4, 2) + "-" + dat.FileModDate.Substring(6, 2);
+            DateTime fileDate = DateTime.ParseExact(fDate, "yyyy-MM-dd", null);
+            DateTime curDate = DateTime.Now;
+            var diff = (curDate - fileDate).TotalDays;
+            if (diff > 30)
+                return true;
+
+            return false;
         }
 
         public static Dat AddDatSize(Dat dat) // if file is to be uploaded

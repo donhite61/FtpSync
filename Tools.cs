@@ -5,8 +5,13 @@ using System.Linq;
 
 namespace FTPSync
 {
-    public class Tools
+    static class Tools
     {
+        public static void Report(string msg, Exception e)
+        {
+            System.Windows.Forms.MessageBox.Show(msg);
+        }
+
         public static List<string> ReadFileToList(string filePath)
         {
             var aReadFile = File.ReadAllLines(filePath);
@@ -16,9 +21,11 @@ namespace FTPSync
 
         internal static void ReadIniFile()
             {
-                string serverIp = "";
+                
                 Loc.DatDir = "";
+                Loc.AchDir = "";
                 Ftp.DatDir = "";
+                Ftp.ServerIp = "";
                 Ftp.ServerPath = "";
                 Ftp.UserName = "";
                 
@@ -44,22 +51,26 @@ namespace FTPSync
                         var split = line.Split('=');
                         if (split[0] == "PathWorkingData")
                             Loc.DatDir = split[1];
-                    }
+                        else if (split[0] == "PathArchivedData")
+                            Loc.AchDir = split[1];
+                    }    
 
                     if (section == "WebFTP")
                     {
                         var split = line.Split('=');
                         if (split[0] == "FTPServerIp")
-                            serverIp = split[1];
-                        if (split[0] == "FTPUserName")
+                            Ftp.ServerIp = split[1];
+                        else if (split[0] == "FTPUserName")
                             Ftp.UserName = split[1];
-                        if (split[0] == "FTPPassWord")
+                        else if (split[0] == "FTPPassWord")
                             Ftp.PassWord = split[1];
-                        if (split[0] == "FTPDatDir")
+                        else if (split[0] == "FTPDatDir")
                             Ftp.DatDir = split[1];
-                    }
+                        else if (split[0] == "FTPArchiveDir")
+                            Ftp.AchDir = split[1];
                 }
-                Ftp.ServerPath = "ftp://" + serverIp + "/" + Ftp.DatDir + "/";
+                }
+                Ftp.ServerPath = "ftp://" + Ftp.ServerIp + "/" + Ftp.DatDir + "/";
                 if (Ftp.DatDir != "" &&
                     Ftp.ServerPath != "" &&
                     Ftp.UserName != "" &&

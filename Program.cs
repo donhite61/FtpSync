@@ -17,14 +17,14 @@ namespace FTPSync
         {
             Tools.ReadIniFile();
             Ftp.WaitForFtpReady();
-            Ftp.RenameFile("FtpReady.txt", "FtpBusy.txt");
+            Ftp.RenameFile(Ftp.ServerPath + "/FtpReady.txt", "/" + Ftp.DatDir + "/FtpBusy.txt");
             Ftp.FtpGetSortedDirList();
             Loc.LoadLocalDats();
             Loc.SortLocalDats();
             Ftp.AddNewFtpDats();
             Ftp.UploadDatsInList();
             Ftp.DownloadDatsInList();
-            Ftp.RenameFile("FtpBusy.txt", "FtpReady.txt");
+            Ftp.RenameFile(Ftp.ServerPath + "/FtpBusy.txt", "/" + Ftp.DatDir + "/FtpReady.txt");
         }
     }
 }
