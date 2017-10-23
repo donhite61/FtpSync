@@ -43,14 +43,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="FTPSync.exe" size="222680">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="FTPSync.exe" size="221656">
       <assemblyIdentity name="FTPSync" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>1xrSyn48Sql/AEEXg+jmhRulggglVIxs5ucb7zcz2Po=</dsig:DigestValue>
+        <dsig:DigestValue>eYsMWrwvcO3avCn5N3oNWnUy5C6Bwdgn0IV3aEoppjs=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

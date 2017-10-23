@@ -9,7 +9,7 @@ namespace FTPSync
     {
         public static void Report(string msg, Exception e)
         {
-            System.Windows.Forms.MessageBox.Show(msg);
+            System.Windows.Forms.MessageBox.Show(msg+"/n"+e);
         }
 
         public static List<string> ReadFileToList(string filePath)

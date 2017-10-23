@@ -15,16 +15,23 @@ namespace FTPSync
 
         private static void DoWork()
         {
-            Tools.ReadIniFile();
-            Ftp.WaitForFtpReady();
-            Ftp.RenameFile(Ftp.ServerPath + "/FtpReady.txt", "/" + Ftp.DatDir + "/FtpBusy.txt");
-            Ftp.FtpGetSortedDirList();
-            Loc.LoadLocalDats();
-            Loc.SortLocalDats();
-            Ftp.AddNewFtpDats();
-            Ftp.UploadDatsInList();
-            Ftp.DownloadDatsInList();
-            Ftp.RenameFile(Ftp.ServerPath + "/FtpBusy.txt", "/" + Ftp.DatDir + "/FtpReady.txt");
+            try
+            {
+                Tools.ReadIniFile();
+                Ftp.WaitForFtpReady();
+                Ftp.RenameFile(Ftp.ServerPath + "/FtpReady.txt", "/" + Ftp.DatDir + "/FtpBusy.txt");
+                Ftp.FtpGetSortedDirList();
+                Loc.LoadLocalDats();
+                Loc.SortLocalDats();
+                Ftp.AddNewFtpDats();
+                Ftp.UploadDatsInList();
+                Ftp.DownloadDatsInList();
+                Ftp.RenameFile(Ftp.ServerPath + "/FtpBusy.txt", "/" + Ftp.DatDir + "/FtpReady.txt");
+            }
+            catch
+            {
+                Tools.Report("FtpSync has had an unknown error", new Exception());
+            }
         }
     }
 }

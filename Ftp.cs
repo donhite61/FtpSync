@@ -53,7 +53,7 @@ namespace FTPSync
                         dat.FtpNameTime = splitTime[0];
 
                         Dat matchingFtpDat = null;
-                        if (DatsList.TryGetValue(dat.OrderNum, out matchingFtpDat))
+                        if (DatsList.TryGetValue(dat.OrderNum, out matchingFtpDat)) //check for duplicate with diff name
                         {
                             DatsList.Remove(matchingFtpDat.OrderNum);
                             dat = FindOldDatandDelete(matchingFtpDat, dat);
@@ -94,7 +94,7 @@ namespace FTPSync
         {
             if (DatsList.Count > 0)
             {
-                foreach (var dat in DatsList) // all found local dats have been deleted from ftpdatlist
+                foreach (var dat in Ftp.DatsList) // all found local dats have been deleted from locdatlist
                 {
                     datsDownload.Add(dat.Value);
                 }
@@ -144,7 +144,7 @@ namespace FTPSync
                 }
             }
             Tools.Report("FtpSync error making ready ", new Exception());
-            Environment.Exit(0);
+            Environment.Exit(1);
         }
 
         public static bool FtpUploadFile(string locFilePath, string ftpFileName)

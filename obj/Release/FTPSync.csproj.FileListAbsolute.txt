@@ -1,0 +1,9 @@
+C:\Csharp\FTPSync\bin\Release\FTPSync.exe.config
+C:\Csharp\FTPSync\bin\Release\FTPSync.exe.manifest
+C:\Csharp\FTPSync\bin\Release\FTPSync.application
+C:\Csharp\FTPSync\bin\Release\FTPSync.exe
+C:\Csharp\FTPSync\bin\Release\FTPSync.pdb
+C:\Csharp\FTPSync\obj\Release\FTPSync.exe.manifest
+C:\Csharp\FTPSync\obj\Release\FTPSync.application
+C:\Csharp\FTPSync\obj\Release\FTPSync.exe
+C:\Csharp\FTPSync\obj\Release\FTPSync.pdb

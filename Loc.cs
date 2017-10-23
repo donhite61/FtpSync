@@ -14,7 +14,7 @@ namespace FTPSync
         internal static void LoadLocalDats()
         {
             Loc.DatList = new List<Dat>();
-            string[] array2 = Directory.GetFiles(DatDir);
+            string[] array2 = Directory.GetFiles(DatDir,"*.dat");
             foreach (string file in array2)
             {
                 var lineList = Tools.ReadFileToList(file);
@@ -42,36 +42,30 @@ namespace FTPSync
                     Dat matchingFtpDat = null;
                     if (Ftp.DatsList.TryGetValue(dat.OrderNum, out matchingFtpDat))
                     {
+                        dat.FtpNameTime = matchingFtpDat.FtpNameTime; // get matching ftp file name
                         int timediff = string.Compare(matchingFtpDat.FtpNameTime, dat.FileModDate);
-                        if (timediff < 0)
+                        if (timediff < 0) // local dat newer
+                            Ftp.datsUpload.Add(dat); // add dat to upload list
+
+                        else if (timediff > 0) //ftp dat newer
+                            Ftp.datsDownload.Add(dat); // add dat to download list
+
+                        else // if file has not changed
                         {
-                            dat.FtpNameTime = matchingFtpDat.FtpNameTime;
-                            Ftp.datsUpload.Add(dat);
-                        }
-                        else if (timediff > 0)
-                        {
-                            dat.FtpNameTime = matchingFtpDat.FtpNameTime;
-                            Ftp.datsDownload.Add(dat);
-                        }
-                        else
-                        {
-                            if (OrderOlderThan30Days(dat))
+                            if (OrderOlderThan30Days(dat)) // check for move to archive
                             {
-                                dat.FtpNameTime = matchingFtpDat.FtpNameTime;
                                 MoveLocDatToArchive(dat);
                                 MoveFtpDatToArchive(dat);
                             }
-
-                            Ftp.DatsList.Remove(dat.OrderNum);
-                            continue;
                         }
+                        Ftp.DatsList.Remove(dat.OrderNum); // if ftp dat found local, remove from ftp dat list
                     }
                     else // if not on ftp
                     {
                         if (OrderOlderThan30Days(dat))
                             MoveLocDatToArchive(dat);
                         else
-                            Ftp.datsUpload.Add(dat); // if not found on ftp
+                            Ftp.datsUpload.Add(dat); // if not found on ftp add to upload
                     }
                 }
             }
