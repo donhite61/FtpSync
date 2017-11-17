@@ -24,3 +24,13 @@ C:\Csharp\FTPSync\obj\Debug\FTPSync.exe.manifest
 C:\Csharp\FTPSync\obj\Debug\FTPSync.application
 C:\Csharp\FTPSync\obj\Debug\FTPSync.exe
 C:\Csharp\FTPSync\obj\Debug\FTPSync.pdb
+C:\DonsScripts\H O T S\FTPSync\bin\Debug\FTPSync.exe.config
+C:\DonsScripts\H O T S\FTPSync\bin\Debug\FTPSync.exe.manifest
+C:\DonsScripts\H O T S\FTPSync\bin\Debug\FTPSync.application
+C:\DonsScripts\H O T S\FTPSync\bin\Debug\FTPSync.exe
+C:\DonsScripts\H O T S\FTPSync\bin\Debug\FTPSync.pdb
+C:\DonsScripts\H O T S\FTPSync\obj\Debug\FTPSync.csprojResolveAssemblyReference.cache
+C:\DonsScripts\H O T S\FTPSync\obj\Debug\FTPSync.exe.manifest
+C:\DonsScripts\H O T S\FTPSync\obj\Debug\FTPSync.application
+C:\DonsScripts\H O T S\FTPSync\obj\Debug\FTPSync.exe
+C:\DonsScripts\H O T S\FTPSync\obj\Debug\FTPSync.pdb

@@ -9,10 +9,12 @@ namespace FTPSync
     {
         public static string DatDir { get; set; }
         public static string AchDir { get; set; }
+        public static string RptDir { get; set; }
         public static List<Dat> DatList { get; set; }
 
         internal static void LoadLocalDats()
         {
+            Tools.Log("Start LoadLocalDats");
             Loc.DatList = new List<Dat>();
             string[] array2 = Directory.GetFiles(DatDir,"*.dat");
             foreach (string file in array2)
@@ -29,43 +31,53 @@ namespace FTPSync
 
         internal static bool SortLocalDats()
         {
+            Tools.Log("Start SortLocalDats");
             if (Ftp.DatsList.Count < 1 && Loc.DatList.Count < 1)
                 return false;
 
-            Ftp.datsUpload = new List<Dat>();
-            Ftp.datsDownload = new List<Dat>();
+            Ftp.DatsUpload = new List<Dat>();
+            Ftp.DatsDownload = new List<Dat>();
 
             if (Loc.DatList.Count > 0)
             {
                 foreach (var dat in Loc.DatList)
                 {
-                    Dat matchingFtpDat = null;
-                    if (Ftp.DatsList.TryGetValue(dat.OrderNum, out matchingFtpDat))
+                    if (Ftp.DatsList.TryGetValue(dat.OrderNum, out Dat matchingFtpDat))
                     {
                         dat.FtpNameTime = matchingFtpDat.FtpNameTime; // get matching ftp file name
                         int timediff = string.Compare(matchingFtpDat.FtpNameTime, dat.FileModDate);
                         if (timediff < 0) // local dat newer
-                            Ftp.datsUpload.Add(dat); // add dat to upload list
+                        {
+                            Ftp.DatsUpload.Add(dat); // add dat to upload list
+                            Tools.Log(dat.OrderNum + " was added to uploadList");
+                        }
 
                         else if (timediff > 0) //ftp dat newer
-                            Ftp.datsDownload.Add(dat); // add dat to download list
-
+                        {
+                            Ftp.DatsDownload.Add(dat); // add dat to download list
+                            Tools.Log(dat.FtpNameTime + "_" + dat.OrderNum + ".dat" + " was added to downloadList");
+                        }
                         else // if file has not changed
                         {
                             if (OrderOlderThan30Days(dat)) // check for move to archive
                             {
                                 MoveLocDatToArchive(dat);
                                 MoveFtpDatToArchive(dat);
+                                Tools.Log(dat.OrderNum + " was old and moved to archive");
                             }
                         }
                         Ftp.DatsList.Remove(dat.OrderNum); // if ftp dat found local, remove from ftp dat list
+                        Tools.Log(dat.OrderNum + " was removed from ftpDatList list");
                     }
                     else // if not on ftp
                     {
                         if (OrderOlderThan30Days(dat))
                             MoveLocDatToArchive(dat);
                         else
-                            Ftp.datsUpload.Add(dat); // if not found on ftp add to upload
+                        {
+                            Ftp.DatsUpload.Add(dat); // if not found on ftp add to upload
+                            Tools.Log(dat.OrderNum + " was added to uploadList");
+                        }
                     }
                 }
             }
@@ -74,6 +86,8 @@ namespace FTPSync
 
         private static void MoveFtpDatToArchive(Dat dat)
         {
+            Tools.Log("Start MoveFtpDatToArchive " + dat.FtpNameTime + "_" + dat.OrderNum + ".dat");
+
             var curDatPath = Ftp.ServerPath + "/" + dat.FtpNameTime + "_" + dat.OrderNum + ".dat";
             var achDatPath = "/" + Ftp.AchDir + "/" + dat.FtpNameTime + "_" + dat.OrderNum + ".dat";
             Ftp.RenameFile(curDatPath, achDatPath);
@@ -81,8 +95,12 @@ namespace FTPSync
 
         private static void MoveLocDatToArchive(Dat dat)
         {
+            Tools.Log("Start MoveLocDatToArchive " + dat.OrderNum + ".dat");
             var curDatPath = dat.locFileName;
             var achDatPath = Loc.AchDir + "\\" + dat.OrderNum + ".dat";
+            if (System.IO.File.Exists(achDatPath))
+                System.IO.File.Delete(achDatPath);
+
             File.Move(curDatPath, achDatPath);
         }
 
@@ -93,8 +111,10 @@ namespace FTPSync
             DateTime curDate = DateTime.Now;
             var diff = (curDate - fileDate).TotalDays;
             if (diff > 30)
+            {
+                Tools.Log(dat.OrderNum + " found over 30 days");
                 return true;
-
+            }
             return false;
         }
 
@@ -103,6 +123,7 @@ namespace FTPSync
             long actsize = new System.IO.FileInfo(dat.locFileName).Length;
             if(dat.RecSize != actsize)
             {
+                Tools.Log("File size incorrect, fixing " + dat.OrderNum);
                 if (dat.RecSize != -1)
                 {
                     var lineList = Tools.ReadFileToList(dat.locFileName);

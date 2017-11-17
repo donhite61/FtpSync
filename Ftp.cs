@@ -15,11 +15,12 @@ namespace FTPSync
         public static string PassWord { get; set; }
         public static bool FtpReady { get; set; }
         public static SortedList<string, Dat> DatsList { get; set; }
-        public static List<Dat> datsDownload { get; set; }
-        public static List<Dat> datsUpload { get; set; }
+        public static List<Dat> DatsDownload { get; set; }
+        public static List<Dat> DatsUpload { get; set; }
 
         internal static void FtpGetSortedDirList()
         {
+            Tools.Log("Start FtpGetSortedDirList");
             FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(ServerPath);
             ftpRequest.Method = WebRequestMethods.Ftp.ListDirectory;
             ftpRequest.Credentials = new NetworkCredential(UserName, PassWord);
@@ -48,12 +49,12 @@ namespace FTPSync
                         if (splitExt[1] != "dat")
                             continue;
 
-                        Dat dat = new Dat();
-                        dat.OrderNum = splitExt[0];
-                        dat.FtpNameTime = splitTime[0];
-
-                        Dat matchingFtpDat = null;
-                        if (DatsList.TryGetValue(dat.OrderNum, out matchingFtpDat)) //check for duplicate with diff name
+                        var dat = new Dat()
+                        {
+                            OrderNum = splitExt[0],
+                            FtpNameTime = splitTime[0]
+                        };
+                        if (DatsList.TryGetValue(dat.OrderNum, out Dat matchingFtpDat)) //check for duplicate with diff name
                         {
                             DatsList.Remove(matchingFtpDat.OrderNum);
                             dat = FindOldDatandDelete(matchingFtpDat, dat);
@@ -70,6 +71,10 @@ namespace FTPSync
         }
         public static Dat FindOldDatandDelete(Dat matchingFtpDat, Dat dat)
         {
+            Tools.Log("Start FindOldDatandDelete, dup found " +
+                matchingFtpDat.FtpNameTime + "_" + matchingFtpDat.OrderNum + ".dat" + " " +
+                dat.FtpNameTime + "_" + dat.OrderNum + ".dat");
+                
             int timediff = string.Compare(matchingFtpDat.FtpNameTime, dat.FtpNameTime);
             if (timediff < 0)
             {
@@ -84,7 +89,8 @@ namespace FTPSync
         }
         internal static void DownloadDatsInList()
         {
-            foreach (var dat in datsDownload)
+            Tools.Log("Start DownloadDatsInList");
+            foreach (var dat in DatsDownload)
             {
                 string locDatpath = Loc.DatDir + "\\" + dat.OrderNum + ".dat";
                 FtpDownloadFile(locDatpath, dat.FtpNameTime + "_" + dat.OrderNum + ".dat");
@@ -92,18 +98,21 @@ namespace FTPSync
         }
         internal static bool AddNewFtpDats()
         {
+            Tools.Log("Start AddNewFtpDats");
             if (DatsList.Count > 0)
             {
                 foreach (var dat in Ftp.DatsList) // all found local dats have been deleted from locdatlist
                 {
-                    datsDownload.Add(dat.Value);
+                    Tools.Log(dat.Key + "added to datsDownloadList");
+                    DatsDownload.Add(dat.Value);
                 }
             }
             return true;
         }
         internal static void UploadDatsInList()
         {
-            foreach (var dat in datsUpload)
+            Tools.Log("Start UploadDatsInList");
+            foreach (var dat in DatsUpload)
             {
                 Loc.AddDatSize(dat);
 
@@ -112,47 +121,53 @@ namespace FTPSync
                     FtpDeleteFile(dat.FtpNameTime + "_" + dat.OrderNum + ".dat");
             }
         }
-        public static void WaitForFtpReady()
+        public static bool WaitForFtpReady()
         {
+            Tools.Log("Start WaitForFtpReady");
             var ftpRdy = false;
             var ftpBsy = false;
-            for (var i = 1; i < 82; i++)
+            for (var i = 1; i < 50; i++)
             {
-                ftpRdy = Ftp.DownloadString("FtpReady.txt");
                 ftpBsy = Ftp.DownloadString("FtpBusy.txt");
+                ftpRdy = Ftp.DownloadString("FtpReady.txt");
 
                 if (ftpRdy == true && ftpBsy == false)
                 {
-                    return;
+                    return true;
                 }
                 else if (ftpRdy == true && ftpBsy == true)
                 {
+                    Tools.Report("FtpSync WaitForReady found both 'ready' & 'busy'" , new Exception());
                     FtpDeleteFile("FtpBusy.txt");
                 }
                 else if (ftpRdy == false && ftpBsy == false)
                 {
+                    Tools.Report("FtpSync WaitForReady did not find 'ready' or 'busy'", new Exception());
                     Ftp.UploadString("FtpReady.txt");
                 }
                 else
                 {
                     System.Threading.Thread.Sleep(3000);
                 }
-                if(i==80)
+                if(i==48)
                 {
+                    Tools.Report("FtpSync WaitForReady timed out waiting, setting as 'ready'", new Exception());
                     Ftp.UploadString("FtpReady.txt");
                     FtpDeleteFile("FtpBusy.txt");
                 }
             }
-            Tools.Report("FtpSync error making ready ", new Exception());
-            Environment.Exit(1);
+            Tools.Report("FtpSync error making ready, exited", new Exception());
+            return false;
         }
 
         public static bool FtpUploadFile(string locFilePath, string ftpFileName)
         {
-            var client = new WebClient();
-            client.Credentials = new NetworkCredential(UserName, PassWord);
-            client.BaseAddress = ServerPath;
-            
+            Tools.Log("Start FtpUploadFile of "+ ftpFileName);
+            var client = new WebClient()
+            {
+                Credentials = new NetworkCredential(UserName, PassWord),
+                BaseAddress = ServerPath
+            };
             try
             {
                 client.UploadFile(ftpFileName, locFilePath);
@@ -174,6 +189,7 @@ namespace FTPSync
         }
         public static bool FtpDownloadFile(string locFilePath, string ftpFileName)
         {
+            Tools.Log("Start FtpDownloadFile of " + ftpFileName);
             string tmpFilePath = "";
             if (File.Exists(locFilePath)) // make backup of local copy in case of download fail
             {
@@ -184,8 +200,10 @@ namespace FTPSync
                 File.Move(locFilePath, tmpFilePath);
             }
 
-            var client = new WebClient();
-            client.Credentials = new NetworkCredential(UserName, PassWord);
+            var client = new WebClient()
+            {
+                Credentials = new NetworkCredential(UserName, PassWord)
+            };
             try
             {
                 client.DownloadFile(ServerPath + ftpFileName, locFilePath);
@@ -214,6 +232,7 @@ namespace FTPSync
         }
         public static bool RenameFile(string oldFName, string newFName)
         {
+            Tools.Log("Start RenameFile from " + oldFName+" to "+newFName);
             FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(oldFName);
             ftpRequest.Method = WebRequestMethods.Ftp.Rename;
             ftpRequest.Proxy = null;
@@ -241,6 +260,7 @@ namespace FTPSync
         }
         public static bool FtpDeleteFile(string ftpFileName)
         {
+            Tools.Log("Start FtpDeleteFile of " + ftpFileName);
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ServerPath + ftpFileName);
             var time = request.Timeout;
             request.Method = WebRequestMethods.Ftp.DeleteFile;
@@ -268,8 +288,11 @@ namespace FTPSync
 
         public static bool DownloadString(string ftpFileName) //used to check for "FtpReady.txt" and "FtpBusy.txt"
         {
-            WebClient client = new WebClient();
-            client.Credentials = new NetworkCredential(UserName, PassWord);
+            Tools.Log("Start DownloadString of " + ftpFileName);
+            WebClient client = new WebClient()
+            {
+                Credentials = new NetworkCredential(UserName, PassWord)
+            };
             try
             {
                 client.DownloadString(ServerPath + ftpFileName);
@@ -277,14 +300,26 @@ namespace FTPSync
             }
             catch (WebException)
             {
-                return false;
+                System.Threading.Thread.Sleep(2000);
+                try
+                {
+                    client.DownloadString(ServerPath + ftpFileName);
+                    return true;
+                }
+                catch (WebException)
+                {
+                    return false;
+                }
             }
         }
 
         public static bool UploadString(string ftpFileName) //used to set "FtpReady" and "FtpBusy.txt"
         {
-            WebClient client = new WebClient();
-            client.Credentials = new NetworkCredential(UserName, PassWord);
+            Tools.Log("Start UploadString of " + ftpFileName);
+            WebClient client = new WebClient()
+            {
+                Credentials = new NetworkCredential(UserName, PassWord)
+            };
             try
             {
                 client.UploadString(ServerPath + ftpFileName, "");

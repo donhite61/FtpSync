@@ -7,13 +7,37 @@ namespace FTPSync
 {
     static class Tools
     {
+        private static List<string> logList;
+        public static bool ErrorOccured;
+
+        public static void Log(string msg)
+        {
+            if (logList == null)
+                logList = new List<string>();
+
+            logList.Add(DateTime.Now +" "+ msg);
+        }
+
+        public static void WriteLog()
+        {
+            var fileName = Loc.RptDir + "\\" + DateTime.Now.ToString("yyyy-M-d h-mm-ss ") + "ERRORLOG.txt";
+            File.WriteAllLines(fileName, logList);
+        }
+
         public static void Report(string msg, Exception e)
         {
-            System.Windows.Forms.MessageBox.Show(msg+"/n"+e);
+            Tools.Log("Start Report Error " + msg + e.ToString());
+            ErrorOccured = true;
+
+            //if (e != null)
+            //    System.Windows.Forms.MessageBox.Show(msg+"/n"+e);
+            //else
+            //    System.Windows.Forms.MessageBox.Show(msg);
         }
 
         public static List<string> ReadFileToList(string filePath)
         {
+            Tools.Log("Start ReadFileToList " + filePath);
             var aReadFile = File.ReadAllLines(filePath);
             var lineList = new List<string>(aReadFile);
             return lineList;
@@ -21,9 +45,10 @@ namespace FTPSync
 
         internal static void ReadIniFile()
             {
-                
+                Tools.Log("Start read Ini File");
                 Loc.DatDir = "";
                 Loc.AchDir = "";
+                Loc.RptDir = "";
                 Ftp.DatDir = "";
                 Ftp.ServerIp = "";
                 Ftp.ServerPath = "";
@@ -68,8 +93,14 @@ namespace FTPSync
                             Ftp.DatDir = split[1];
                         else if (split[0] == "FTPArchiveDir")
                             Ftp.AchDir = split[1];
+                    }
+                if (section == "Reports")
+                {
+                    var split = line.Split('=');
+                    if (split[0] == "ReportPath")
+                        Loc.RptDir = split[1];
                 }
-                }
+            }
                 Ftp.ServerPath = "ftp://" + Ftp.ServerIp + "/" + Ftp.DatDir + "/";
                 if (Ftp.DatDir != "" &&
                     Ftp.ServerPath != "" &&

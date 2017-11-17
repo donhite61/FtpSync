@@ -10,28 +10,40 @@ namespace FTPSync
     {
         static void Main(string[] args)
         {
-            DoWork();
+            try
+            {
+                DoWork();
+            }
+            catch (Exception e)
+            {
+                Tools.Report("Main loop error", e);
+                Ftp.RenameFile(Ftp.ServerPath + "FtpBusy.txt", "/" + Ftp.DatDir + "/FtpReady.txt");
+                Tools.WriteLog();
+            }
         }
 
         private static void DoWork()
         {
-            try
-            {
+           
                 Tools.ReadIniFile();
-                Ftp.WaitForFtpReady();
-                Ftp.RenameFile(Ftp.ServerPath + "/FtpReady.txt", "/" + Ftp.DatDir + "/FtpBusy.txt");
+                if (!Ftp.WaitForFtpReady())
+                    throw new Exception("ftp never ready");
+
+                if (!Ftp.RenameFile(Ftp.ServerPath + "FtpReady.txt", "/" + Ftp.DatDir + "/FtpBusy.txt"))
+                    throw new Exception("rename from ready to busy");
+
                 Ftp.FtpGetSortedDirList();
                 Loc.LoadLocalDats();
                 Loc.SortLocalDats();
                 Ftp.AddNewFtpDats();
                 Ftp.UploadDatsInList();
                 Ftp.DownloadDatsInList();
-                Ftp.RenameFile(Ftp.ServerPath + "/FtpBusy.txt", "/" + Ftp.DatDir + "/FtpReady.txt");
-            }
-            catch
-            {
-                Tools.Report("FtpSync has had an unknown error", new Exception());
-            }
+                if(!Ftp.RenameFile(Ftp.ServerPath + "FtpBusy.txt", "/" + Ftp.DatDir + "/FtpReady.txt"))
+                    throw new Exception("rename from busy to ready");
+
+                if (Tools.ErrorOccured)
+                    Tools.WriteLog();
+          
         }
     }
 }
