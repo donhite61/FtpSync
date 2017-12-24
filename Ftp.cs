@@ -18,6 +18,9 @@ namespace FTPSync
         public static List<Dat> DatsDownload { get; set; }
         public static List<Dat> DatsUpload { get; set; }
 
+        /// <summary>
+        /// This is a method that does some stuff
+        /// </summary>
         internal static void FtpGetSortedDirList()
         {
             Tools.Log("Start FtpGetSortedDirList");
